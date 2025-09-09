@@ -1,0 +1,25 @@
+
+.amount {
+	padding:5px;
+	text-align:right;
+	background-color:lightgreen;
+}
+
+th {
+	border:1px solid black;
+	padding:5px;
+	background-color:yellow;
+	color:blue;
+}
+
+td {
+	border:1px solid black;
+	padding:5px;
+}
+
+#receipt {
+	background-color:lightyellow;
+	padding:5px;
+	border:1px solid black;
+}
+

@@ -1,0 +1,17 @@
+.buttons {
+
+	width:3em;
+	height:3em;
+	border:1px solid blue;
+	cursor:pointer;
+}
+
+#output {
+
+	width:10em;
+	height:10em;
+	border:1px solid blue;
+	font-size:2em;
+	overflow: auto;
+	
+}

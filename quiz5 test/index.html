@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="main.js" defer></script>
+</head>
+<body class="page">
+  <div class="title-danger">Menu</div>
+  <div class="title-main">Take Order!</div>
+  <hr class="divider">
+
+  <!-- item 1 -->
+  <div class="card">
+    <div class="card-img">
+      <img src="images/meal.avif" alt="">
+    </div>
+    <div class="card-body">
+      <div class="item-name">1 - pc. Breakfast Chickenjoy New Spicy Solo</div>
+      <div class="price">₱ <span id="price1">160.00</span></div>
+    </div>
+    <div class="controls">
+      <input type="number" id="input1" value="0" class="input-num">
+      <input type="button" id="plus1" value="+" class="btn">
+      <input type="button" id="minus1" value="-" class="btn">
+    </div>
+    <div id="total1" class="total">₱0.00</div>
+  </div>
+
+  <!-- item 2 -->
+  <div class="card">
+    <div class="card-img">
+      <img src="images/burger.avif" alt="">
+    </div>
+    <div class="card-body">
+      <div class="item-name">Double Cheesy Yumburger w/ Fries & Drink</div>
+      <div class="price">₱ <span id="price2">217.00</span></div>
+    </div>
+    <div class="controls">
+      <input type="number" id="input2" value="0" class="input-num">
+      <input type="button" id="plus2" value="+" class="btn">
+      <input type="button" id="minus2" value="-" class="btn">
+    </div>
+    <div id="total2" class="total">₱0.00</div>
+  </div>
+
+  <!-- item 3 -->
+  <div class="card">
+    <div class="card-img">
+      <img src="images/spaghetti.avif" alt="">
+    </div>
+    <div class="card-body">
+      <div class="item-name">Double Cheesy Yumburger w/ Fries & Drink</div>
+      <div class="price">₱ <span id="price3">250.00</span></div>
+    </div>
+    <div class="controls">
+      <input type="number" id="input3" value="0" class="input-num">
+      <input type="button" id="plus3" value="+" class="btn">
+      <input type="button" id="minus3" value="-" class="btn">
+    </div>
+    <div id="total3" class="total">₱0.00</div>
+  </div>
+
+  <div class="grand-total" id="grand_total">Grand Total: ₱ 0.00</div>
+  <div>
+    <input type="button" class="btn checkout" value="CHECKOUT" id="checkout">
+  </div>
+
+  <!-- modal -->
+  <div id="myModal" class="modal">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <h2>Checkout</h2>
+
+    <div class="modal-order-summary">
+      <h3>Order Summary:</h3>
+      <div id="modal-items"></div>
+      <div class="modal-total" id="modal-total">Grand Total: ₱0.00</div><br>
+      <div class="" id="tendered-display">Tendered: ₱0.00</div>
+      <div class="change-display" id="change-display">Change: ₱0.00</div>
+      <button id="complete-checkout" class="btn checkout-complete">Complete Checkout</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

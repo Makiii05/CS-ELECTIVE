@@ -1,0 +1,7 @@
+CSELECT practice program
+Create a Jollibee Ordering Program
+1. There are 3 menu items
+2. Each menu item has a picture, price,plus and minus buttons and total
+3. Everytime the plus and minus buttons are pressed the total and the grand total will be computed
+4. There is a CHECK OUT button when pressed will display the summary of orders with pics
+5. A prompt() will also appear that will get the amount tendered by the customer then the CHANGE will appear.

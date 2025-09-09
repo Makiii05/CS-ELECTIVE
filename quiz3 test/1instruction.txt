@@ -1,0 +1,11 @@
+Create an IDENTIFICATION QUIZ program that has 5 items. 
+There should be 2 possible answers and it should accept answers be it small or upper case. 
+After pressing the FINISH button it will display an X or check mark beside the question 
+it will display the score and percentage of correct answers. 
+The questions should be taken from news websites.
+
+
+lower/upper
+display ✅❌
+display correct answer
+percentage 

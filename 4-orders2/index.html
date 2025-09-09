@@ -1,0 +1,105 @@
+<html>
+<head>
+	<title>Combo Box</title>
+	
+	<meta name="viewport" content="width=device-width, initial-scale=1"> <!-- Make the display compatible with phones -->
+	
+	<link rel="stylesheet" href="style.css">
+	
+	<body>
+	
+		<h3>Orders</h3>
+		
+		<table>
+			<tr>
+				<th>Product</th>
+				<th>Qty</th>
+				<th>Remarks</th>
+				<th>Amount</th>
+			</tr>
+			<tr>				
+				<td>
+					<select id="product1">
+						<option value="0"></option>
+						<option value="10">Palamig</option>
+						<option value="20">Banana Q</option>
+					</select>
+				</td>
+				<td>
+					<select id="quantity1">
+						<option value="0">0</option>
+						<option value="1">1</option>
+						<option value="2">2</option>
+						<option value="3">3</option>
+						<option value="4">4</option>
+					</select>
+				</td>
+				<td>
+					<span id="remarks1"></span>
+				</td>
+				<td>
+					<input type="text" class="amount" id="amount1" readonly value="0" size="10">
+				</td>
+			</tr>
+			
+			<tr>				
+				<td>
+					<select id="product2">
+						<option value="0"></option>
+						<option value="10">Palamig</option>
+						<option value="20">Banana Q</option>
+					</select>
+				</td>
+				<td>
+					<select id="quantity2">
+						<option value="0">0</option>
+						<option value="1">1</option>
+						<option value="2">2</option>
+						<option value="3">3</option>
+						<option value="4">4</option>
+					</select>
+				</td>
+				<td>
+					<span id="remarks2"></span>
+				</td>
+				<td>
+					<input type="text" class="amount" id="amount2" readonly value="0" size="10">
+				</td>
+			</tr>
+			<tr>
+				<td colspan="3" align="right">Total P</td>
+				<td>
+					<input type="text" class="amount" id="total" readonly value="0" size="10">
+				</td>
+			</tr>
+			<tr>
+				<td colspan="4" align="center">
+					<button id="btn_done" disabled="true">Done</button>
+				</td>
+			</tr>
+			<tr>
+				<td colspan="4" align="center">
+					<div id="receipt">
+					</div>
+				</td>
+			</tr>
+			
+			<tr>
+				<td colspan="4" align="center">
+					<label>Amount Tendered</label>
+					<input disabled="true" class="amount" type="text" id="tendered" value="0" size="10">
+					<label>Change</label>
+					<input readonly type="text" class="amount" id="amount_change" value="0" size="10">
+				</td>
+			</tr>
+		
+		</table>
+		
+	
+		<script src="main.js"></script>
+	</body>
+
+</head>
+
+
+</html>
