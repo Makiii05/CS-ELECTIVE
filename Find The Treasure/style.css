@@ -121,3 +121,16 @@ body{
 
     transition: --circle-size 1s ease-in-out;
   }
+
+@media (max-width: 700px) {
+    .game-container{
+        max-height: 600px;
+        overflow-y: auto;
+        font-size: clamp(50%,75%,100%);
+        min-width: 350px;
+    }
+    #grid{
+        min-width: 300px;
+        padding: auto;
+    }
+}
