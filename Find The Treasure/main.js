@@ -116,6 +116,11 @@ let world1 = 5;
 let world2 = 10;
 let gameInProgress = false;
 
+// Combo system
+let combo = 0;
+let comboMultiplier = 1;
+
+
 // ================================================================================
 // FUNCTIONS
 // ================================================================================
@@ -144,7 +149,10 @@ function findTheTreasureEntrance() {
 function main() {
     // Idempotent event bindings
     startBtn.onclick = startGame;
-    restartBtn.onclick = menu;
+    restartBtn.onclick = function () {
+        circleEffect();
+        setTimeout(menu, 700)
+    }
     nextRoundBtn.onclick = () => nextRound("new");
     retryRoundBtn.onclick = () => retry("new");
     leaderboardBtn.onclick = () => leaderboard("view");
@@ -346,7 +354,24 @@ function createCard() {
             if (treasurePosition.includes(i)) {
                 card.style.backgroundImage = `url('images/coin.gif?${Date.now()}')`;
                 playCoinSound();
-                score += 100;
+
+                combo++;
+                comboMultiplier = 1 + combo * 0.5; // e.g. combo=1→1.5x, combo=2→2x, etc.
+                let gainedXP = Math.floor(100 * comboMultiplier);
+                score += gainedXP;
+
+                // Floating combo text (visual feedback)
+                const floatText = document.createElement("span");
+                floatText.textContent = `🔥 +${gainedXP} XP (x${comboMultiplier.toFixed(1)})`;
+                floatText.style.position = "absolute";
+                floatText.style.color = "gold";
+                floatText.style.fontWeight = "bold";
+                floatText.style.transform = "translateY(-10px)";
+                floatText.style.transition = "0.5s ease-out";
+                card.appendChild(floatText);
+                setTimeout(() => floatText.style.opacity = "0", 300);
+                setTimeout(() => floatText.remove(), 800);
+
                 scoreEl.innerHTML = score;
             } else if (extraLifePosition.includes(i)) {
                 card.style.backgroundImage = `url('images/1up.gif?${Date.now()}')`;
@@ -360,6 +385,8 @@ function createCard() {
             } else {
                 card.style.backgroundImage = `url('images/wrong.gif?${Date.now()}')`;
                 playWrongSound();
+                combo = 0;
+                comboMultiplier = 1;
             }
 
             guessedPosition.push(i);
@@ -672,6 +699,8 @@ function resetSettings(todo) {
         boxCount = 9;
         gameInProgress = false;
         grid.innerHTML = "";
+        combo = 0;
+        comboMultiplier = 1;
 
         // reset layout classes (assume grid uses bootstrap row-cols-X)
         grid.classList.remove("row-cols-4", "row-cols-5", "row-cols-6");
@@ -687,6 +716,8 @@ function resetSettings(todo) {
         isGuessed = false;
         gameInProgress = true;
         grid.innerHTML = "";
+        combo = 0;
+        comboMultiplier = 1;
     }
 }
 
