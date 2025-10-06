@@ -120,6 +120,9 @@ let gameInProgress = false;
 let combo = 0;
 let comboMultiplier = 1;
 
+// Bonus challenge event
+let isBonusRound = false;
+let bonusDuration = 10;
 
 // ================================================================================
 // FUNCTIONS
@@ -234,6 +237,7 @@ function nextRound(todo) {
         // Pause timer and freeze interactions
         stopTimer();
         gameInProgress = false;
+        isBonusRound = false;
 
         nextRoundCon.classList.remove("d-none");
         gameOverCon.classList.add("d-none");
@@ -243,9 +247,13 @@ function nextRound(todo) {
         currentScoreEl.innerHTML = score;
         currentLifeEl.innerHTML = life;
     } else if (todo === "new") {
+        isBonusRound = false;
         nextRoundCon.classList.add("d-none");
         modalCon.classList.add("d-none");
-
+        if (round === world1 || round === world2) {
+            startBonusRound();
+            return; // stop here so normal round won't start yet
+        }
         // prepare next round
         resetSettings("next");
         round++;
@@ -257,6 +265,56 @@ function nextRound(todo) {
         timerStart();
         createCard();
     }
+}
+
+// Bonus round every next difficulty
+function startBonusRound() {
+    console.log("🎯 BONUS ROUND START!");
+    isBonusRound = true;
+    gameInProgress = true;
+
+    // Setup bonus mode visuals
+    grid.innerHTML = "";
+    runningCon.classList.remove("d-none");
+    modalCon.classList.add("d-none");
+
+    // Temporary visual cue
+    mainCon.style.background = `
+        radial-gradient(circle at 50% 50%, rgba(255, 255, 0, 0.3) 0%, transparent 60%), 
+        linear-gradient(180deg, #ffb400 0%, #ff6a00 100%)`;
+
+    // Reset and build grid
+    if (round <= world1) {
+        // world 1: 3x3
+        oxCount = 9;
+    } else if (round > world1 && round <= world2) {
+        // world 2: 4x4
+        boxCount = 16;
+    } else {
+        // later rounds: 5 columns (wider)
+        boxCount = 25;
+    }
+    treasureCount = 6; // more treasures
+    maxSelection = 999; // effectively infinite
+    selection = 0;
+    gameTime = bonusDuration;
+    createBonusGrid();
+
+    // Start countdown
+    stopTimer();
+    timerInterval = setInterval(() => {
+        gameTime--;
+        timeEl.innerHTML = gameTime + "s";
+        if (gameTime <= 0) {
+            endBonusRound();
+        }
+    }, 1000);
+
+    // UI setup
+    roundEl.innerHTML = "BONUS";
+    lifeEl.innerHTML = life;
+    scoreEl.innerHTML = score;
+    selectionEl.innerHTML = "∞";
 }
 
 // Retry function - Allows player to retry current round after failure
@@ -397,6 +455,51 @@ function createCard() {
     }
 }
 
+// Create bonus card function
+function createBonusGrid() {
+    treasurePosition = ensureUniqueRandom(treasureCount, boxCount);
+
+    for (let i = 0; i < boxCount; i++) {
+        const card = document.createElement("div");
+        card.classList.add("col", "m-1");
+        card.style.cursor = 'pointer';
+        card.style.backgroundImage = "url('images/box.png')";
+        grid.appendChild(card);
+
+        card.onclick = function () {
+            if (!isBonusRound) return;
+
+            // instant reaction, no blocking
+            if (treasurePosition.includes(i)) {
+                card.style.backgroundImage = `url('images/coin.gif?${Date.now()}')`;
+                playCoinSound();
+                score += 150;
+                scoreEl.innerHTML = score;
+
+                // small feedback
+                card.style.transition = "transform 0.1s ease";
+                card.style.transform = "scale(1.2)";
+                setTimeout(() => {
+                    card.style.transform = "scale(1)";
+                    card.style.backgroundImage = "url('images/box.png')";
+                }, 200);
+
+                // regenerate treasures dynamically for chaos mode
+                treasurePosition = ensureUniqueRandom(treasureCount, boxCount);
+            }else{
+                card.style.backgroundImage = `url('images/wrong.gif?${Date.now()}')`;
+                playWrongSound();
+                setTimeout(() => {
+                    card.style.transform = "scale(1)";
+                    card.style.backgroundImage = "url('images/box.png')";
+                }, 200);
+                treasurePosition = ensureUniqueRandom(treasureCount, boxCount);
+            }
+        };
+
+    }
+}
+
 // Check end round - Determines if round should end and what happens next
 function checkEndRound() {
     // Stop the timer immediately and freeze interactions
@@ -430,6 +533,24 @@ function checkIfGuessed() {
         isGuessed = false;
     }
 }
+
+function endBonusRound() {
+    stopTimer();
+    isBonusRound = false;
+    gameInProgress = false;
+    grid.innerHTML = "";
+    mainCon.style.background = ""; // reset background
+    alert("Bonus Round Over! +XP earned!");
+
+    // Continue to next real round
+    round++;
+    difficulty();
+    resetSettings("next");
+    timeEl.innerHTML = gameTime + "s";
+    createCard();
+    timerStart();
+}
+
 
 // Update life function - Modifies player life count
 function updateLife(change) {
