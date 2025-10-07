@@ -36,11 +36,12 @@ body{
 #grid .col:hover {
     transition: transform 0.3s ease;
     background-image: url("images/box_on_hover.gif");
+    cursor: url("images/hover.cur"), auto;
 }
 
 #grid .col:active {
   animation: bounceBlock 0.3s ease;
-    
+    cursor: url("images/click.cur"), auto;
 }
 
 .theme-btn{

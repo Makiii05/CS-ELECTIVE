@@ -397,7 +397,6 @@ function createCard() {
         const card = document.createElement("div");
         card.classList.add("col", "m-1");
         card.setAttribute('role', 'button');
-        card.style.cursor = 'pointer';
         grid.appendChild(card);
 
         // Click handler for each card - Main gameplay interaction
