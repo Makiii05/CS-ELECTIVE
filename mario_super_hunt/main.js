@@ -135,7 +135,7 @@ function findTheTreasureEntrance() {
     // only run entrance once
     if (findTheTreasure.classList.contains('d-none')) return;
     findTheTreasure.classList.add("d-none");
-    const defaultSize = 800;
+    const defaultSize = 1100;
     overlay.style.setProperty('--circle-size', `${defaultSize}px`);
     for (let size = 0; size <= defaultSize; size += 10) {
         setTimeout(() => {
@@ -547,7 +547,7 @@ function endBonusRound() {
     resetSettings("next");
     timeEl.innerHTML = gameTime + "s";
     createCard();
-    timerStart();   
+    timerStart();
 }
 
 
@@ -696,7 +696,7 @@ function onHoverSFX(){
 
 // Circle effect - Visual transition animation between worlds
 function circleEffect() {
-    let defaultSize = 800;
+    let defaultSize = 1100;
     for (let size = defaultSize; size >= 0; size -= 10) {
         setTimeout(() => {
             overlay.style.setProperty('--circle-size', `${size}px`);
