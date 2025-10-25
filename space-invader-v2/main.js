@@ -1,24 +1,20 @@
-// Menu buttons
 const btn = document.querySelectorAll(".btn");
 const selector = document.querySelectorAll(".selector");
 
-// Containers
 const menuCon = document.querySelector("#menu-con");
 const hpCon = document.querySelector("#hp-con");
 const statsCon = document.querySelector("#stats-con");
 const mainCon = document.querySelector("#main-con");
-const infiCon = document.querySelector("#infi-con");
 const instructionCon = document.querySelector("#instruction-con");
-const leaderboardCon = document.querySelector("#leaderboard-con");
 
 const scoreEl = document.getElementById("scoreEl");
 const roundEl = document.getElementById("roundEl");
 const enemyEl = document.getElementById("enemyEl");
+const lifeEl = document.getElementById("life-con");
 const hpBar = document.getElementById("hp-bar");
 const superBallBar = document.getElementById("super-ball-bar");
 const healBar = document.getElementById("heal-bar");
 
-// Global trackers
 const keys = {};
 let bullets = [];
 let enemies = [];
@@ -27,36 +23,34 @@ let gameLoopRunning = false;
 let gameLoopId = null;
 let currentPlayer = null;
 let keyHandlers = { down: null, up: null };
-let lastPowerUpUpdate = 0; // track when last updated
+let lastPowerUpUpdate = 0;
 
-// Stats
-let playerHp = 100
-let score = 0
+let playerHp = 100;
+let score = 0;
 let enemyCount = 0;
-let superBall = 0
-let heal = 0
+let superBall = 0;
+let heal = 0;
+let life = 3;
 
-// Extra
 let menu_btn_selected_id = 0;
 let page = "Menu";
+let nextRoundCalled = false;
 
-// Rounds: [type, number, speed, hp]
 const classicRound = {
-    1: ["line", 20, 1000, 1],
+    1: ["line", 20, 3000, 1],
     2: ["diagonal", 20, 1000, 1],
-    3: ["arrow", 20, 1000, 1],
+    3: ["arrow", 2, 1000, 1],
     4: ["boss", 1, 1000, 20],
     5: ["line", 30, 750, 1],
     6: ["diagonal", 30, 750, 1],
-    7: ["arrow", 30, 750, 1],
-    8: ["boss", 1, 1000, 30],
+    7: ["arrow", 3, 1000, 1],
+    8: ["boss", 2, 1000, 30],
     9: ["line", 50, 500, 1],
     10: ["diagonal", 50, 500, 1],
-    11: ["arrow", 50, 500, 1],
-    12: ["boss", 1, 1000, 40],
+    11: ["arrow", 4, 1000, 1],
+    12: ["mothership", 1, 3000, 40],
 };
 
-// --- Menu Logic ---
 function updateSelection() {
     btn.forEach((b, i) => {
         if (i === menu_btn_selected_id) {
@@ -70,12 +64,9 @@ function updateSelection() {
 }
 
 function updatePage() {
-    // Hide all containers
-    [menuCon, hpCon, statsCon, mainCon, infiCon, instructionCon, leaderboardCon].forEach(el => {
+    [menuCon, hpCon, statsCon, mainCon, instructionCon].forEach(el => {
         el.classList.add("d-none");
     });
-
-    // Stop any running game
     stopGame();
 
     if (page === "Menu") {
@@ -87,55 +78,59 @@ function updatePage() {
         hpCon.classList.remove("d-none");
         statsCon.classList.remove("d-none");
         startCountdown(mainCon);
-    } else if (page === "Infinite Mode") {
-        infiCon.classList.remove("d-none");
-        hpCon.classList.remove("d-none");
-        statsCon.classList.remove("d-none");
     } else if (page === "Instruction") {
         instructionCon.classList.remove("d-none");
-    } else if (page === "Leaderboard") {
-        leaderboardCon.classList.remove("d-none");
     }
 }
 
 function updateStats() {
+    lifeEl.innerHTML = "";
+    for (let i = 0; i < life; i++) {
+        lifeEl.innerHTML += `<img id="life-img" src="img/sprite/player.png">`;
+    }
     hpBar.style.width = playerHp + "%";
-    scoreEl.innerText = score
+    scoreEl.innerText = score;
     roundEl.innerText = curRound + "/" + Object.keys(classicRound).length;
-    enemyCount =  enemies.length
-    enemyEl.innerText = enemyCount
+    enemyCount = enemies.length;
+    enemyEl.innerText = enemyCount;
 }
 
 function updatePowerUPs() {
     if (superBall < 100) {
         superBall += 1;
         superBallBar.style.width = superBall + "%";
+        superBallBar.style.backgroundColor = "green";
+    } else {
+        superBallBar.style.backgroundColor = "red";
     }
 
     if (heal < 100) {
         heal += 2;
         healBar.style.width = heal + "%";
+        healBar.style.backgroundColor = "green";
+    } else {
+        healBar.style.backgroundColor = "red";
     }
 }
 
 function resetGameState() {
-    // basic stats
-    playerHp = 100
-    score = 0
-    enemyCount = 0;
-    superBall = 0
-    heal = 0
-    nextRoundCalled = false;
-
-    // rounds / gameplay trackers
-    curRound = null;
     gameLoopRunning = false;
     if (gameLoopId) {
         cancelAnimationFrame(gameLoopId);
         gameLoopId = null;
     }
 
-    // remove any lingering event listeners
+    playerHp = 100;
+    score = 0;
+    enemyCount = 0;
+    superBall = 0;
+    heal = 0;
+    life = 3;
+    curRound = null;
+    nextRoundCalled = false;
+
+    Object.keys(keys).forEach(k => delete keys[k]);
+
     if (keyHandlers.down) {
         document.removeEventListener("keydown", keyHandlers.down);
         keyHandlers.down = null;
@@ -145,13 +140,67 @@ function resetGameState() {
         keyHandlers.up = null;
     }
 
-    // remove player element
     if (currentPlayer && currentPlayer.el && currentPlayer.el.parentNode) {
         currentPlayer.el.remove();
     }
     currentPlayer = null;
 
-    // clear bullets and enemies (DOM & intervals)
+    bullets.forEach(b => {
+        if (b.el && b.el.parentNode) b.el.remove();
+        if (b.moveInterval) clearInterval(b.moveInterval);
+    });
+    enemies.forEach(e => {
+        if (e.el && e.el.parentNode) e.el.remove();
+        if (e.moveInterval) clearInterval(e.moveInterval);
+        if (e.attackInterval) clearInterval(e.attackInterval);
+    });
+    bullets = [];
+    enemies = [];
+
+    menu_btn_selected_id = 0;
+    updateSelection();
+
+    mainCon.innerHTML = "";
+    hpCon.classList.add("d-none");
+    statsCon.classList.add("d-none");
+    instructionCon.classList.add("d-none");
+    menuCon.classList.add("d-none");
+
+    hpBar.style.width = "100%";
+    superBallBar.style.width = "0%";
+    superBallBar.style.backgroundColor = "green";
+    healBar.style.width = "0%";
+    healBar.style.backgroundColor = "green";
+    lifeEl.innerHTML = "";
+    for (let i = 0; i < life; i++) {
+        lifeEl.innerHTML += `<img id="life-img" src="img/sprite/player.png">`;
+    }
+
+    scoreEl.innerText = 0;
+    roundEl.innerText = "- / " + Object.keys(classicRound).length;
+    enemyEl.innerText = 0;
+    page = "Menu";
+    lastPowerUpUpdate = 0;
+}
+
+function stopGame() {
+    gameLoopRunning = false;
+    if (gameLoopId) {
+        cancelAnimationFrame(gameLoopId);
+        gameLoopId = null;
+    }
+    if (keyHandlers.down) {
+        document.removeEventListener("keydown", keyHandlers.down);
+        keyHandlers.down = null;
+    }
+    if (keyHandlers.up) {
+        document.removeEventListener("keyup", keyHandlers.up);
+        keyHandlers.up = null;
+    }
+    if (currentPlayer && currentPlayer.el && currentPlayer.el.parentNode) {
+        currentPlayer.el.remove();
+    }
+    currentPlayer = null;
     bullets.forEach(b => {
         if (b.el && b.el.parentNode) b.el.remove();
         if (b.moveInterval) clearInterval(b.moveInterval);
@@ -160,71 +209,33 @@ function resetGameState() {
         if (e.el && e.el.parentNode) e.el.remove();
         if (e.moveInterval) clearInterval(e.moveInterval);
     });
-
     bullets = [];
     enemies = [];
-
-    // clear pressed keys
-    Object.keys(keys).forEach(k => delete keys[k]);
-
-    // reset menu selection
-    menu_btn_selected_id = 0;
-    updateSelection();
-
-    // clear main container UI
-    mainCon.innerHTML = "";
-    hpCon.classList.add("d-none");
-    statsCon.classList.add("d-none");
+    Object.keys(keys).forEach(key => delete keys[key]);
 }
 
-function stopGame() {
-    gameLoopRunning = false;
-    
-    if (gameLoopId) {
-        cancelAnimationFrame(gameLoopId);
-        gameLoopId = null;
-    }
-    
-    // Remove event listeners
-    if (keyHandlers.down) {
-        document.removeEventListener("keydown", keyHandlers.down);
-        keyHandlers.down = null;
-    }
-    if (keyHandlers.up) {
-        document.removeEventListener("keyup", keyHandlers.up);
-        keyHandlers.up = null;
-    }
-    
-    // Clear player
-    if (currentPlayer && currentPlayer.el && currentPlayer.el.parentNode) {
-        currentPlayer.el.remove();
-    }
-    currentPlayer = null;
-    
-    // Clear all bullets and enemies
-    bullets.forEach(b => {
-        if (b.el && b.el.parentNode) {
-            b.el.remove();
+function mothershipAttack(enemy, container) {
+    if (!gameLoopRunning || !enemy || enemy.remove) return;
+    let bulletsFired = 0;
+    const bulletFireRate = 100;
+    const totalBullets = 10;
+    const shootInterval = setInterval(() => {
+        if (!gameLoopRunning || !enemy || enemy.remove || !currentPlayer) {
+            clearInterval(shootInterval);
+            return;
         }
-        if (b.moveInterval) {
-            clearInterval(b.moveInterval);
+        if (bulletsFired >= totalBullets) {
+            clearInterval(shootInterval);
+            return;
         }
-    });
-    
-    enemies.forEach(e => {
-        if (e.el && e.el.parentNode) {
-            e.el.remove();
-        }
-        if (e.moveInterval) {
-            clearInterval(e.moveInterval);
-        }
-    });
-    
-    bullets = [];
-    enemies = [];
-    
-    // Clear keys
-    Object.keys(keys).forEach(key => delete keys[key]);
+        const playerX = currentPlayer.x + 4.5;
+        const playerY = currentPlayer.y;
+        const bulletX = enemy.x + 28;
+        const bulletY = enemy.y + 28;
+        const bullet = new EnemyBullet(bulletX, bulletY, playerX, playerY);
+        bullet.render(container);
+        bulletsFired++;
+    }, bulletFireRate);
 }
 
 function startCountdown(pageCon) {
@@ -234,11 +245,9 @@ function startCountdown(pageCon) {
             <p>GET READY!</p>
             <p>GAME STARTS IN</p>
         </div>`;
-    
     const countdownEl = document.createElement("p");
     document.getElementById("countdown-con").appendChild(countdownEl);
     let count = 3;
-
     const timer = setInterval(() => {
         if (count > 0) {
             countdownEl.innerText = count;
@@ -246,7 +255,6 @@ function startCountdown(pageCon) {
         } else {
             countdownEl.innerText = "GO!";
             clearInterval(timer);
-
             setTimeout(() => {
                 if (page === "Classic Mode") {
                     pageCon.innerHTML = "";
@@ -257,21 +265,32 @@ function startCountdown(pageCon) {
     }, 1000);
 }
 
-// --- Core Game ---
 function classicMode(container) {
-    // Clear old arrays and stop any running game
     stopGame();
 
-    // Player setup
     currentPlayer = new Player(100, 1);
     currentPlayer.render(container);
 
-    // Input handlers (using named functions to avoid duplicates)
     keyHandlers.down = (e) => {
         keys[e.key] = true;
-        if (e.key === " " && gameLoopRunning && currentPlayer) {
+        if (e.key === " ") {
             e.preventDefault();
-            currentPlayer.shoot(container);
+        }
+        if (e.key.toLowerCase() === "x" && gameLoopRunning) {
+            if (playerHp < 100 && heal == 100) {
+                playerHp += 10;
+                heal = 0;
+                if (playerHp > 100) playerHp = 100;
+                updateStats();
+            }
+        }
+        if (e.key.toLowerCase() === "z" && gameLoopRunning && currentPlayer) {
+            if (superBall == 100) {
+                e.preventDefault();
+                currentPlayer.shoot(container, true);
+                superBall = 0;
+                updateStats();
+            }
         }
     };
 
@@ -279,11 +298,9 @@ function classicMode(container) {
         keys[e.key] = false;
     };
 
-    // Add event listeners
     document.addEventListener("keydown", keyHandlers.down);
     document.addEventListener("keyup", keyHandlers.up);
 
-    // Enemy setup
     const roundData = classicRound[curRound];
     if (!roundData) {
         console.error("Invalid round:", curRound);
@@ -298,8 +315,8 @@ function classicMode(container) {
         spawnDiagonalEnemies(container, number, speed, hp);
     } else if (type === "arrow") {
         spawnArrowEnemies(container, number, speed, hp);
-    } else if (type === "boss") {
-        spawnBoss(container, speed, hp);
+    } else if (type === "boss" || type === "mothership") {
+        spawnBoss(container, speed, hp, type);
     }
 
     gameLoopRunning = true;
@@ -309,9 +326,11 @@ function classicMode(container) {
         if (currentPlayer) {
             if (keys["ArrowLeft"]) currentPlayer.move("left");
             if (keys["ArrowRight"]) currentPlayer.move("right");
+            if (keys[" "]) {
+                currentPlayer.shoot(container);
+            }
         }
 
-        // Run power-up update every 1000ms (1 second)
         if (!lastPowerUpUpdate || timestamp - lastPowerUpUpdate >= 1000) {
             updatePowerUPs();
             lastPowerUpUpdate = timestamp;
@@ -323,133 +342,156 @@ function classicMode(container) {
     requestAnimationFrame(gameLoop);
 
     gameLoop();
-    updateStats()
-    updatePowerUPs()
+    updateStats();
+    updatePowerUPs();
 }
 
-// --- Enemy Spawning Functions ---
 function spawnLineEnemies(container, number, speed, hp) {
-    let x = 0;
-    let y = 5;
-    let min = 0;
-    let max = 100 - (number / 2 * 5);
+    const enemiesPerRow = 10;
+    const spacingX = 5;
+    const spacingY = 5;
+    const totalRows = Math.ceil(number / enemiesPerRow);
+    let spawned = 0;
 
-    for (let i = 0; i < number; i++) {
-        if (i === number / 2) {
-            y = 10;
-            x = 0;
-            min = 0;
-            max = 100 - (number / 2 * 5);
+    for (let row = 0; row < totalRows; row++) {
+        let enemiesThisRow = Math.min(enemiesPerRow, number - spawned);
+        let rowY = 5 + row * spacingY;
+        let startX = 5;
+
+        for (let i = 0; i < enemiesThisRow; i++) {
+            const x = startX + i * spacingX;
+            const min = x - 5;
+            const max = x + ((enemiesThisRow * 5) - 5);
+
+            const enemy = new Enemy(x, rowY, speed, hp, "line");
+            enemy.render(container);
+            enemy.move(min, max);
+            updateStats();
+
+            spawned++;
         }
-
-        const enemy = new Enemy(x, y, speed, hp, "line");
-        enemy.render(container);
-        enemy.move(min, max);
-        updateStats()
-
-        min += 5;
-        max += 5;
-        x += 5;
     }
 }
 
 function spawnDiagonalEnemies(container, number, speed, hp) {
     let summoned = 0;
-
     const spawn = setInterval(() => {
         if (summoned >= number || !gameLoopRunning) {
             clearInterval(spawn);
             return;
         }
-
         const enemy = new Enemy(0, 0, speed, hp, "diagonal");
         enemy.render(container);
         enemy.move(0, 95);
-        updateStats()
-        
+        updateStats();
         summoned++;
     }, 400);
 }
 
 function spawnArrowEnemies(container, number, speed, hp) {
-    // Arrow formation - V shape
+    const numRow = number;
+    const enemyPerRow = 20;
     const centerX = 50;
     const spacing = 5;
-    
-    for (let i = 0; i < number; i++) {
-        const offset = (i - number / 2) * spacing;
+
+    for (let i = 0; i < enemyPerRow; i++) {
+        const offset = (i - enemyPerRow / 2) * spacing;
         const x = centerX + offset;
-        const y = 5 + (number / 2 - Math.abs(i - number / 2)) * 1.8;
-        
+        const y = 5 + (enemyPerRow / 2 - Math.abs(i - enemyPerRow / 2)) * 1.8;
+
         const enemy = new Enemy(x, y, speed, hp, "arrow");
         enemy.render(container);
         enemy.move(x + 20, x - 10);
-        updateStats()
+        updateStats();
     }
 }
 
-function spawnBoss(container, speed, hp) {
-    const enemy = new Enemy(45, 10, speed, hp, "boss");
-    enemy.el.style.width = "15%"; // Make boss bigger
-    enemy.render(container);
-    enemy.move(10, 80);
-    updateStats()
-}
+function spawnBoss(container, speed, hp, type = "boss") {
+    const enemy = new Enemy(45, 10, speed, hp, type);
 
-// --- Collision Handling ---
-let nextRoundCalled = false;
+    if (type === "mothership") {
+        enemy.el.style.width = "60%";
+        enemy.el.src = "img/sprite/mothership.png";
+        enemy.render(container);
+        enemy.move(0, 40);
+
+        const attackInterval = setInterval(() => {
+            if (!gameLoopRunning || enemy.remove || enemy.hp <= 0) {
+                clearInterval(attackInterval);
+                return;
+            }
+            mothershipAttack(enemy, container);
+        }, 3000);
+    } else {
+        enemy.el.style.width = "15%";
+        enemy.el.src = "img/sprite/boss.gif";
+        enemy.render(container);
+        enemy.move(10, 80);
+    }
+
+    updateStats();
+}
 
 function checkCollisions() {
     if (!gameLoopRunning) return;
 
-    // Check bullet-enemy collisions
     bullets.forEach(bullet => {
         if (bullet.remove || !bullet.el) return;
-        
         const bRect = bullet.el.getBoundingClientRect();
-
         enemies.forEach(enemy => {
-            if (enemy.remove || !enemy.el || bullet.remove) return;
-            
+            if (enemy.remove || !enemy.el) return;
             const eRect = enemy.el.getBoundingClientRect();
-
             if (
                 bRect.left < eRect.right &&
                 bRect.right > eRect.left &&
                 bRect.top < eRect.bottom &&
                 bRect.bottom > eRect.top
             ) {
-                enemy.hp--;
-                score += 10
-                updateStats()
-                bullet.remove = true;
-
-                // Enemy hit flash
-                if (enemy.el) {
-                    enemy.el.style.filter = "brightness(200%)";
-                    setTimeout(() => {
-                        if (enemy.el) {
-                            enemy.el.style.filter = "brightness(100%)";
-                        }
-                    }, 100);
+                enemy.hp -= bullet.damage;
+                enemy.el.style.filter = "brightness(200%)";
+                setTimeout(() => enemy.el && (enemy.el.style.filter = "brightness(100%)"), 100);
+                if (!bullet.bulletSkill) {
+                    bullet.remove = true;
                 }
-
                 if (enemy.hp <= 0) {
+                    score += 10;
                     enemy.remove = true;
-                    if (enemy.el) {
-                        enemy.el.src = "img/sprite/explode.gif";
-                        setTimeout(() => {
-                            if (enemy.el && enemy.el.parentNode) {
-                                enemy.el.remove();
-                            }
-                        }, 500);
-                    }
+                    updateStats();
+                    enemy.el.src = "img/sprite/explode.gif";
+                    setTimeout(() => enemy.el?.remove(), 500);
                 }
             }
         });
     });
 
-    // Remove hit bullets
+    if (currentPlayer && currentPlayer.el) {
+        const pRect = currentPlayer.el.getBoundingClientRect();
+        document.querySelectorAll('.enemy-bullet').forEach(bulletEl => {
+            const bRect = bulletEl.getBoundingClientRect();
+            if (
+                pRect.left < bRect.right &&
+                pRect.right > bRect.left &&
+                pRect.top < bRect.bottom &&
+                pRect.bottom > bRect.top
+            ) {
+                playerHp -= 10;
+                updateStats();
+                currentPlayer.el.style.filter = "brightness(50%)";
+                setTimeout(() => {
+                    if (currentPlayer && currentPlayer.el)
+                        currentPlayer.el.style.filter = "brightness(100%)";
+                }, 200);
+                bulletEl.remove();
+                if (playerHp <= 0) {
+                    if(life == 0)
+                        gameOver();
+                    life--;
+                    playerHp = 100;
+                }
+            }
+        });
+    }
+
     bullets = bullets.filter(b => {
         if (b.remove) {
             if (b.el && b.el.parentNode) {
@@ -463,7 +505,6 @@ function checkCollisions() {
         return true;
     });
 
-    // Remove destroyed enemies
     enemies = enemies.filter(e => {
         if (e.remove) {
             if (e.moveInterval) {
@@ -474,64 +515,55 @@ function checkCollisions() {
         return true;
     });
 
-    // Check if round is complete (only if there are no enemies left)
     if (enemies.length === 0 && gameLoopRunning && !nextRoundCalled) {
         nextRoundCalled = true;
         nextRound();
         setTimeout(() => {
             nextRoundCalled = false;
-        }, 4000)
+        }, 4000);
     }
     checkPlayerEnemyCollision();
 }
 
 function checkPlayerEnemyCollision() {
     if (!currentPlayer || !currentPlayer.el) return;
-
     const pRect = currentPlayer.el.getBoundingClientRect();
 
     enemies.forEach(enemy => {
         if (enemy.remove || !enemy.el) return;
-
         const eRect = enemy.el.getBoundingClientRect();
-
         if (
             pRect.left < eRect.right &&
             pRect.right > eRect.left &&
             pRect.top < eRect.bottom &&
             pRect.bottom > eRect.top
         ) {
-            // Collision happened
             playerHp -= 5;
-            updateStats()
-
-            // Flash player to indicate hit
+            updateStats();
             currentPlayer.el.style.filter = "brightness(50%)";
             setTimeout(() => {
                 if (currentPlayer && currentPlayer.el)
                     currentPlayer.el.style.filter = "brightness(100%)";
             }, 200);
-
-            // Remove enemy on contact
             enemy.hp = 0;
             enemy.remove = true;
             if (enemy.el) {
                 enemy.el.src = "img/sprite/explode.gif";
                 setTimeout(() => enemy.el?.remove(), 400);
             }
-
-            // Optional: check for game over
             if (playerHp <= 0) {
-                gameOver();
+                life--;
+                if (life == 0) {
+                    gameOver();
+                } else {
+                    playerHp = 100;
+                }
             }
         }
     });
-
-    // Clean up removed enemies
     enemies = enemies.filter(e => !e.remove);
 }
 
-// ---- Round Handling ---
 function gameOver() {
     stopGame();
     mainCon.innerHTML = `
@@ -543,20 +575,16 @@ function gameOver() {
 }
 
 function nextRound() {
-    if (!gameLoopRunning) return; // Prevent multiple calls
-    
+    if (!gameLoopRunning) return;
     gameLoopRunning = false;
     curRound++;
-    updateStats()
-
-
+    updateStats();
     if (classicRound[curRound]) {
         mainCon.innerHTML = `
             <div id="round-con" class="fs-1 text-center border d-flex flex-column align-items-center justify-content-center h-100">
                 <p>ROUND ${curRound}</p>
                 <p>GET READY!</p>
             </div>`;
-
         setTimeout(() => {
             if (page === "Classic Mode") {
                 mainCon.innerHTML = "";
@@ -567,13 +595,13 @@ function nextRound() {
         mainCon.innerHTML = `
             <div class="fs-1 text-center border d-flex flex-column align-items-center justify-content-center h-100">
                 <p>YOU WIN!</p>
-                <p>All rounds completed 🎉</p>
+                <p>All rounds completed</p>
+                <p>Press ESC to return to Menu</p>
             </div>`;
         stopGame();
     }
 }
 
-// --- Classes ---
 class Player {
     constructor(hp, playerNo) {
         this.hp = hp;
@@ -582,6 +610,8 @@ class Player {
         this.y = 90;
         this.min_x = 0;
         this.max_x = 90;
+        this.shooted = false;
+        this.fireRate = 300;
 
         this.el = document.createElement("img");
         this.el.src = "img/sprite/player.png";
@@ -599,7 +629,6 @@ class Player {
 
     move(direction) {
         if (!gameLoopRunning) return;
-        
         const moveSpeed = 0.5;
         if (direction === "left" && this.x > this.min_x) {
             this.x -= moveSpeed;
@@ -610,13 +639,20 @@ class Player {
         this.el.style.left = this.x + "%";
     }
 
-    shoot(container) {
+    shoot(container, bulletSkill = false) {
         if (!gameLoopRunning) return;
-        
-        const bulletX = this.x + 4.5;
-        const bulletY = this.y - 5;
-        const bullet = new Bullet(bulletX, bulletY);
-        bullet.render(container);
+        if (this.shooted == false) {
+            let bulletX = this.x + 4.5;
+            let bulletY = this.y - 5;
+            if (bulletSkill) {
+                bulletX = this.x + 0.5;
+                bulletY = this.y - 15;
+            }
+            const bullet = new Bullet(bulletX, bulletY, bulletSkill);
+            bullet.render(container);
+            this.shooted = true;
+            setTimeout(() => { this.shooted = false }, this.fireRate);
+        }
     }
 }
 
@@ -653,17 +689,14 @@ class Enemy {
                 this.moveInterval = null;
                 return;
             }
-
-            // Enemy reached bottom - game over condition
             if (this.y >= 95) {
                 this.hp = 0;
-                this.el.src = "img/sprite/explode.gif"
+                this.el.src = "img/sprite/explode.gif";
                 this.remove = true;
                 clearInterval(this.moveInterval);
                 this.moveInterval = null;
                 return;
             }
-
             if (this.type === "line" || this.type === "boss") {
                 if (this.direction === "right") {
                     this.x += 1;
@@ -693,8 +726,19 @@ class Enemy {
                 this.y += 0.1;
             } else if (this.type === "arrow") {
                 this.y += 0.5;
+            } else if (this.type === "mothership") {
+                if (this.direction === "right") {
+                    this.x += 1;
+                    if (this.x >= max) {
+                        this.direction = "left";
+                    }
+                } else {
+                    this.x -= 1;
+                    if (this.x <= min) {
+                        this.direction = "right";
+                    }
+                }
             }
-
             if (this.el) {
                 this.el.style.top = this.y + "%";
                 this.el.style.left = this.x + "%";
@@ -704,19 +748,22 @@ class Enemy {
 }
 
 class Bullet {
-    constructor(x, y) {
+    constructor(x, y, bulletSkill = false) {
         this.x = x;
         this.y = y;
-        this.speed = 2;
         this.remove = false;
         this.moveInterval = null;
+        this.bulletSkill = bulletSkill;
+
+        this.speed = bulletSkill ? 1.1 : 2;
+        this.damage = bulletSkill ? 5 : 1;
 
         this.el = document.createElement("img");
-        this.el.src = "img/sprite/bullet.png";
+        this.el.src = bulletSkill ? "img/sprite/enemy-bullet.png" : "img/sprite/bullet.png";
         this.el.className = "bullet";
         this.el.style.position = "absolute";
-        this.el.style.width = "1%";
-        this.el.style.height = "3%";
+        this.el.style.width = bulletSkill ? "15%" : "1%";
+        this.el.style.height = bulletSkill ? "15%" : "3%";
         this.el.style.left = this.x + "%";
         this.el.style.top = this.y + "%";
         this.el.style.backgroundColor = "transparent";
@@ -735,9 +782,7 @@ class Bullet {
                 this.moveInterval = null;
                 return;
             }
-
             this.y -= this.speed;
-
             if (this.y < 0) {
                 clearInterval(this.moveInterval);
                 this.moveInterval = null;
@@ -748,7 +793,6 @@ class Bullet {
                 bullets = bullets.filter(b => b !== this);
                 return;
             }
-
             if (this.el) {
                 this.el.style.top = this.y + "%";
             }
@@ -756,28 +800,84 @@ class Bullet {
     }
 }
 
-// --- Menu Navigation ---
+class EnemyBullet {
+    constructor(x, y, targetX, targetY) {
+        this.x = x;
+        this.y = y;
+        this.targetX = targetX;
+        this.targetY = targetY;
+        this.remove = false;
+        this.moveInterval = null;
+        this.speed = 1.5;
+        this.damage = 10;
+
+        this.el = document.createElement("img");
+        this.el.src = "img/sprite/enemy-bullet.png";
+        this.el.className = "enemy-bullet";
+        this.el.style.position = "absolute";
+        this.el.style.width = "2%";
+        this.el.style.height = "auto";
+        this.el.style.left = this.x + "%";
+        this.el.style.top = this.y + "%";
+        this.el.style.backgroundColor = "transparent";
+    }
+
+    render(container) {
+        container.appendChild(this.el);
+        this.move();
+    }
+
+    move() {
+        const dx = this.targetX - this.x;
+        const dy = this.targetY - this.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        const moveX = (dx / distance) * this.speed;
+        const moveY = (dy / distance) * this.speed;
+
+        this.moveInterval = setInterval(() => {
+            if (this.remove || !gameLoopRunning) {
+                clearInterval(this.moveInterval);
+                this.moveInterval = null;
+                return;
+            }
+            this.x += moveX;
+            this.y += moveY;
+
+            if (this.y > 100 || this.x < -5 || this.x > 105) {
+                clearInterval(this.moveInterval);
+                this.moveInterval = null;
+                this.remove = true;
+                if (this.el && this.el.parentNode) {
+                    this.el.remove();
+                }
+                return;
+            }
+            if (this.el) {
+                this.el.style.top = this.y + "%";
+                this.el.style.left = this.x + "%";
+            }
+        }, 50);
+    }
+}
+
 document.addEventListener("keydown", (event) => {
     if (page === "Menu") {
-        if (event.key === "ArrowUp" && menu_btn_selected_id > 0) {
-            menu_btn_selected_id--;
-        } else if (event.key === "ArrowDown" && menu_btn_selected_id < btn.length - 1) {
-            menu_btn_selected_id++;
-        } else if (event.key === "Enter") {
+        if (event.key === "ArrowUp" && menu_btn_selected_id > 0) menu_btn_selected_id--;
+        else if (event.key === "ArrowDown" && menu_btn_selected_id < btn.length - 1) menu_btn_selected_id++;
+        else if (event.key === "Enter") {
             const btn_selected = btn[menu_btn_selected_id];
             page = btn_selected.innerText;
             updatePage();
         }
         updateSelection();
     }
-
     if (event.key === "Escape") {
         page = "Menu";
         updatePage();
     }
 });
 
-// --- Initialize ---
 function main() {
     updateSelection();
     updatePage();
