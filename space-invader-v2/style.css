@@ -1,3 +1,6 @@
+body{
+    background-image: url("img/backdrop/skulls.png");
+}
 .btn{
   transition: 0.1s;
   cursor: none;

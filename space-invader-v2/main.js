@@ -15,6 +15,19 @@ const hpBar = document.getElementById("hp-bar");
 const superBallBar = document.getElementById("super-ball-bar");
 const healBar = document.getElementById("heal-bar");
 
+const shootS = new Audio("mp3/shoot.wav");
+const explosionS = new Audio("mp3/explosion.wav");
+const healS = new Audio("mp3/heal.mp3");
+const superballS = new Audio("mp3/superball.mp3");
+
+const mainS = new Audio("mp3/main.mp3");
+mainS.loop = true;
+mainS.volume = 0.5;
+
+const menuS = new Audio("mp3/menu.mp3");
+menuS.loop = true;
+menuS.volume = 1;
+
 const keys = {};
 let bullets = [];
 let enemies = [];
@@ -24,6 +37,7 @@ let gameLoopId = null;
 let currentPlayer = null;
 let keyHandlers = { down: null, up: null };
 let lastPowerUpUpdate = 0;
+let backgroundY = 0;
 
 let playerHp = 100;
 let score = 0;
@@ -70,13 +84,18 @@ function updatePage() {
     stopGame();
 
     if (page === "Menu") {
+        playMenuS();
+        stopMainS();
         resetGameState();
         menuCon.classList.remove("d-none");
     } else if (page === "Classic Mode") {
+        playMainS();
+        stopMenuS();
         curRound = 1;
         mainCon.classList.remove("d-none");
         hpCon.classList.remove("d-none");
         statsCon.classList.remove("d-none");
+        loadMainBackground();
         startCountdown(mainCon);
     } else if (page === "Instruction") {
         instructionCon.classList.remove("d-none");
@@ -113,12 +132,23 @@ function updatePowerUPs() {
     }
 }
 
+function loadMainBackground() {
+    mainCon.style.backgroundImage = "url('img/backdrop/starfield.png')";
+    mainCon.style.backgroundRepeat = "repeat-y";
+    mainCon.style.backgroundSize = "cover";
+    mainCon.style.backgroundPosition = "0% 0%";
+}
+
 function resetGameState() {
     gameLoopRunning = false;
     if (gameLoopId) {
         cancelAnimationFrame(gameLoopId);
         gameLoopId = null;
     }
+
+    backgroundY = 0;
+    mainCon.style.backgroundPosition = "0% 0%";
+
 
     playerHp = 100;
     score = 0;
@@ -277,7 +307,8 @@ function classicMode(container) {
             e.preventDefault();
         }
         if (e.key.toLowerCase() === "x" && gameLoopRunning) {
-            if (playerHp < 100 && heal == 100) {
+            if (playerHp < 100 && heal >= 100) {
+                playHealS()
                 playerHp += 10;
                 heal = 0;
                 if (playerHp > 100) playerHp = 100;
@@ -285,7 +316,8 @@ function classicMode(container) {
             }
         }
         if (e.key.toLowerCase() === "z" && gameLoopRunning && currentPlayer) {
-            if (superBall == 100) {
+            if (superBall >= 100) {
+                playSuperballS()
                 e.preventDefault();
                 currentPlayer.shoot(container, true);
                 superBall = 0;
@@ -335,6 +367,8 @@ function classicMode(container) {
             updatePowerUPs();
             lastPowerUpUpdate = timestamp;
         }
+        backgroundY += 0.5;
+        mainCon.style.backgroundPosition = `0px ${backgroundY}px`;
 
         checkCollisions();
         gameLoopId = requestAnimationFrame(gameLoop);
@@ -376,13 +410,16 @@ function spawnLineEnemies(container, number, speed, hp) {
 function spawnDiagonalEnemies(container, number, speed, hp) {
     let summoned = 0;
     const spawn = setInterval(() => {
-        if (summoned >= number || !gameLoopRunning) {
+        if (summoned/2 >= number || !gameLoopRunning) {
             clearInterval(spawn);
             return;
         }
-        const enemy = new Enemy(0, 0, speed, hp, "diagonal");
-        enemy.render(container);
-        enemy.move(0, 95);
+        const enemyR = new Enemy(0, 0, speed, hp, "diagonal");
+        enemyR.render(container);
+        enemyR.move(0, 95);
+        const enemyL = new Enemy(95, 0, speed, hp, "diagonal");
+        enemyL.render(container);
+        enemyL.move(0, 95);
         updateStats();
         summoned++;
     }, 400);
@@ -447,6 +484,7 @@ function checkCollisions() {
                 bRect.top < eRect.bottom &&
                 bRect.bottom > eRect.top
             ) {
+                playExplosionS()
                 enemy.hp -= bullet.damage;
                 enemy.el.style.filter = "brightness(200%)";
                 setTimeout(() => enemy.el && (enemy.el.style.filter = "brightness(100%)"), 100);
@@ -538,6 +576,7 @@ function checkPlayerEnemyCollision() {
             pRect.top < eRect.bottom &&
             pRect.bottom > eRect.top
         ) {
+            playExplosionS()
             playerHp -= 5;
             updateStats();
             currentPlayer.el.style.filter = "brightness(50%)";
@@ -602,6 +641,70 @@ function nextRound() {
     }
 }
 
+function playMainS() {
+    try { mainS.currentTime = 0; mainS.play(); }
+    catch (err) { console.log("mainS blocked:", err); }
+}
+
+function stopMainS() {
+    try { mainS.pause(); mainS.currentTime = 0; }
+    catch (e) { }
+}
+
+// Menu music controls
+function playMenuS() {
+    try { menuS.currentTime = 0; menuS.play(); }
+    catch (err) { console.log("Menu sound blocked:", err); }
+}
+
+function stopMenuS() {
+    try { menuS.pause(); menuS.currentTime = 0; }
+    catch (e) { }
+}
+
+function playShootS() {
+    try { 
+        const s = shootS.cloneNode(); 
+        s.volume = 0.3; 
+        s.play(); }
+    catch (e) { 
+
+    }
+}
+
+function playExplosionS() {
+    try { 
+        const s = explosionS.cloneNode(); 
+        s.volume = 0.3; 
+        s.play(); }
+    catch (e) { 
+
+    }
+}
+
+function playHealS(){
+    try { 
+        const s = healS.cloneNode(); 
+        s.play(); }
+    catch (e) { 
+
+    }
+}
+
+function playSuperballS(){
+    try { 
+        const s = superballS.cloneNode();
+        s.volume = 0.4; 
+        s.play(); 
+        setTimeout(()=>{
+            s.pause()
+        }, 1500)
+    }catch (e) { 
+
+    }
+}
+
+
 class Player {
     constructor(hp, playerNo) {
         this.hp = hp;
@@ -642,6 +745,7 @@ class Player {
     shoot(container, bulletSkill = false) {
         if (!gameLoopRunning) return;
         if (this.shooted == false) {
+            playShootS();
             let bulletX = this.x + 4.5;
             let bulletY = this.y - 5;
             if (bulletSkill) {
@@ -690,6 +794,7 @@ class Enemy {
                 return;
             }
             if (this.y >= 95) {
+                playExplosionS()
                 this.hp = 0;
                 this.el.src = "img/sprite/explode.gif";
                 this.remove = true;
